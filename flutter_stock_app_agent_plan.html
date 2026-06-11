@@ -1,0 +1,449 @@
+
+<style>
+  :root { --phase-gap: 12px; }
+  .header { padding: 1.5rem 0 1rem; }
+  .header h1 { font-size: 18px; font-weight: 500; margin: 0 0 4px; color: var(--color-text-primary); }
+  .header p { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
+  .progress-bar-wrap { background: var(--color-background-secondary); border-radius: 6px; height: 6px; margin: 1rem 0 0.5rem; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #10a37f; border-radius: 6px; transition: width .4s ease; }
+  .progress-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 1.25rem; }
+  .phase-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); margin-bottom: var(--phase-gap); overflow: hidden; }
+  .phase-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; }
+  .phase-header:hover { background: var(--color-background-secondary); }
+  .phase-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .phase-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+  .phase-meta { font-size: 12px; color: var(--color-text-secondary); }
+  .phase-chevron { font-size: 16px; color: var(--color-text-secondary); transition: transform .2s; }
+  .phase-chevron.open { transform: rotate(180deg); }
+  .phase-body { padding: 0 16px 12px; display: none; }
+  .phase-body.open { display: block; }
+  .task-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .task-row:last-child { border-bottom: none; }
+  .task-check { margin-top: 2px; accent-color: #10a37f; flex-shrink: 0; cursor: pointer; }
+  .task-text { font-size: 13px; color: var(--color-text-primary); flex: 1; line-height: 1.5; }
+  .task-text.done { text-decoration: line-through; color: var(--color-text-tertiary); }
+  .task-tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+  .tag-core { background: var(--color-background-info); color: var(--color-text-info); }
+  .tag-ui { background: var(--color-background-success); color: var(--color-text-success); }
+  .tag-db { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .tag-test { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .prompt-box { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; margin-top: 10px; }
+  .prompt-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .prompt-text { font-size: 12px; color: var(--color-text-primary); font-family: var(--font-mono); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn { font-size: 12px; margin-top: 8px; padding: 4px 10px; cursor: pointer; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); }
+  .copy-btn:hover { background: var(--color-background-secondary); }
+  .refocus-box { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-left: 3px solid #E24B4A; border-radius: var(--border-radius-md); padding: 12px 14px; margin: 1rem 0; }
+  .refocus-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .refocus-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; white-space: pre-wrap; }
+  .reset-btn { font-size: 12px; padding: 5px 14px; cursor: pointer; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); margin-top: 0.5rem; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1rem; }
+  .tab { font-size: 13px; padding: 5px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); cursor: pointer; background: transparent; color: var(--color-text-secondary); }
+  .tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-secondary); font-weight: 500; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .super-prompt-area { font-size: 12px; font-family: var(--font-mono); color: var(--color-text-primary); line-height: 1.7; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px; white-space: pre-wrap; word-break: break-word; border: 0.5px solid var(--color-border-tertiary); }
+</style>
+
+<h2 class="sr-only">Flutter Stock App — Agent Build Plan with progress tracking</h2>
+
+<div class="header">
+  <h1>📦 Flutter Stock App — Agent Build Plan</h1>
+  <p>Barcode-driven inventory management for Algerian boutiques · ~5 days focused · Check off tasks as you go</p>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="progress-label"><span id="prog-text">0 / 0 tasks complete</span> &nbsp;·&nbsp; <button class="reset-btn" onclick="resetAll()">Reset all</button></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('plan')">Build plan</button>
+  <button class="tab" onclick="switchTab('prompt')">Super prompt</button>
+  <button class="tab" onclick="switchTab('refocus')">Refocus</button>
+</div>
+
+<div id="tab-plan" class="tab-content active">
+
+<div id="phases-container"></div>
+
+</div>
+
+<div id="tab-prompt" class="tab-content">
+<div class="prompt-box">
+  <div class="prompt-label">Paste this at the start of every agent session</div>
+  <div class="prompt-text" id="super-prompt-display"></div>
+  <button class="copy-btn" onclick="copyPrompt()">Copy prompt</button>
+</div>
+</div>
+
+<div id="tab-refocus" class="tab-content">
+<div class="refocus-box">
+  <div class="refocus-title">🔁 Refocus prompt — paste when you're deep in a bug rabbit hole</div>
+  <div class="refocus-text" id="refocus-display"></div>
+  <button class="copy-btn" onclick="copyRefocus()">Copy refocus</button>
+</div>
+<div class="prompt-box" style="margin-top:1rem">
+  <div class="prompt-label">Session start — phase-aware context</div>
+  <div class="prompt-text" id="session-prompt-display"></div>
+  <button class="copy-btn" onclick="copySession()">Copy session prompt</button>
+</div>
+</div>
+
+<script>
+const PHASES = [
+  {
+    id: 'p0',
+    title: 'Project scaffold',
+    time: '~0.5 day',
+    color: '#E6F1FB', numColor: '#185FA5',
+    tasks: [
+      { id: 't01', text: 'flutter create stock_app, set min SDK to 3.0', tag: 'core' },
+      { id: 't02', text: 'Add packages: mobile_scanner, drift + drift_dev, flutter_riverpod, go_router, barcode_widget, intl', tag: 'core' },
+      { id: 't03', text: 'Setup Drift database class with Products + Movements tables', tag: 'db' },
+      { id: 't04', text: 'Run flutter pub run build_runner build to generate Drift files', tag: 'db' },
+      { id: 't05', text: 'Add CAMERA permission in AndroidManifest.xml + runtime request via permission_handler', tag: 'core' },
+      { id: 't06', text: 'Setup go_router with placeholder routes: /, /scan, /product/:id, /product/new, /history', tag: 'core' },
+    ],
+    prompt: `You are helping me build a Flutter stock management Android app. Stack: Flutter 3+, Drift (SQLite), Riverpod, mobile_scanner, go_router.
+
+CURRENT PHASE: Project scaffold.
+Goal: Create the project, add all packages, generate the Drift schema with Products and Movements tables, setup routing skeleton.
+
+Schema:
+Products: id (autoIncrement), name, barcode (unique), quantity (default 0), price, category (nullable), createdAt
+Movements: id, productId (FK→Products), type (sale|restock|adjustment), quantity, note (nullable), createdAt
+
+Keep it minimal — no UI yet, just foundation. Generate AndroidManifest.xml with CAMERA permission. After scaffold, run build_runner.`
+  },
+  {
+    id: 'p1',
+    title: 'Barcode scan core',
+    time: '~0.5 day',
+    color: '#E1F5EE', numColor: '#0F6E56',
+    tasks: [
+      { id: 't11', text: 'ScanScreen widget with MobileScanner filling the screen', tag: 'ui' },
+      { id: 't12', text: 'Overlay: viewfinder frame + "Point at barcode" hint text', tag: 'ui' },
+      { id: 't13', text: 'onBarcodeScanned(String barcode) logic: query DB → route to action or new-product form', tag: 'core' },
+      { id: 't14', text: 'Debounce scans (ignore duplicates within 2 seconds)', tag: 'core' },
+      { id: 't15', text: 'Handle camera permission denied state gracefully', tag: 'core' },
+    ],
+    prompt: `CURRENT PHASE: Barcode scan core.
+ScanScreen is the heart of the app — the first screen the user sees.
+
+Build:
+1. Full-screen MobileScanner widget
+2. Custom overlay: semi-transparent frame with a clear center rectangle (the "scan zone")
+3. onBarcodeScanned(String barcode): 
+   - Query Products table WHERE barcode = scanned value
+   - If found → show ScanActionSheet (bottom sheet) with: product name, current qty, [Sell] [Restock] [View] buttons
+   - If NOT found → navigate to /product/new with barcode pre-filled
+4. 2-second debounce to prevent double-scan
+5. Graceful permission denied UI with a button to open app settings
+
+Use Riverpod for the DB provider. Keep state simple — no complex state machine yet.`
+  },
+  {
+    id: 'p2',
+    title: 'Product CRUD',
+    time: '~1 day',
+    color: '#FAEEDA', numColor: '#854F0B',
+    tasks: [
+      { id: 't21', text: 'ProductListScreen: list all products, search by name, show qty badge (red if <5)', tag: 'ui' },
+      { id: 't22', text: 'ProductDetailScreen: show name, barcode, qty, price, category, movement history', tag: 'ui' },
+      { id: 't23', text: 'NewProductScreen: form with barcode (pre-filled from scan), name, price, qty, category', tag: 'ui' },
+      { id: 't24', text: 'EditProductScreen: same form, pre-filled, with delete option', tag: 'ui' },
+      { id: 't25', text: 'Drift DAOs: getProductByBarcode, getAllProducts, insertProduct, updateProduct, deleteProduct', tag: 'db' },
+      { id: 't26', text: 'Riverpod providers: productsProvider, productByBarcodeProvider', tag: 'core' },
+    ],
+    prompt: `CURRENT PHASE: Product CRUD screens.
+Build 4 screens + Drift DAO layer:
+
+Screens:
+1. ProductListScreen: ListView of all products, TextSearchField filtering by name in-memory, each tile shows name + current qty with a red badge if qty < 5
+2. ProductDetailScreen: card with all product fields + ListView of last 20 movements
+3. NewProductScreen: form (barcode pre-filled if coming from scan), validation on name+barcode required, save creates product with an initial "adjustment" movement
+4. EditProductScreen: same form, delete button with confirmation dialog
+
+DAO methods needed:
+- watchAllProducts() → Stream<List<Product>>
+- getProductByBarcode(String b) → Future<Product?>
+- insertProduct(ProductsCompanion) → Future<int>
+- updateProduct(Product) → Future<bool>
+- deleteProduct(int id) → Future<int>
+- watchMovementsForProduct(int id) → Stream<List<Movement>>
+
+Use Riverpod StreamProvider for reactive list. Keep form validation inline, no third-party form library.`
+  },
+  {
+    id: 'p3',
+    title: 'Sale & restock flows',
+    time: '~1 day',
+    color: '#FCEBEB', numColor: '#A32D2D',
+    tasks: [
+      { id: 't31', text: 'ScanActionSheet: bottom sheet with product info + Sell / Restock / View buttons', tag: 'ui' },
+      { id: 't32', text: 'SellDialog: qty input (default 1), confirm deducts qty + inserts movement row', tag: 'ui' },
+      { id: 't33', text: 'RestockDialog: qty input, confirm adds qty + inserts movement row', tag: 'ui' },
+      { id: 't34', text: 'Guard: block sell if qty would go below 0, show warning', tag: 'core' },
+      { id: 't35', text: 'Drift DAO: insertMovement, updateProductQty (single transaction)', tag: 'db' },
+      { id: 't36', text: 'Success snackbar after each operation with product name + new qty', tag: 'ui' },
+    ],
+    prompt: `CURRENT PHASE: Sale and restock flows.
+This is the core daily-use flow. Must be fast — ideally 2 taps from scan to confirmed.
+
+Build:
+1. ScanActionSheet (ModalBottomSheet): product name, current qty, 3 action buttons
+2. SellDialog: NumberInput (default 1, min 1, max=current_qty), Confirm deducts qty, writes Movement(type:'sale', qty: -n)
+3. RestockDialog: NumberInput (default 1, no max), Confirm adds qty, writes Movement(type:'restock', qty: +n)
+4. IMPORTANT: qty update + movement insert must be one DB transaction — use db.transaction()
+5. Block sell when qty would go to <0. Show: "Only X units in stock"
+6. After success: pop the sheet, show SnackBar: "Sold 2× [name] — 8 remaining" or "Restocked 10× [name] — 18 total"
+
+Keep dialogs minimal — no fancy animations. Speed > polish here.`
+  },
+  {
+    id: 'p4',
+    title: 'Movement history',
+    time: '~0.5 day',
+    color: '#EEEDFE', numColor: '#534AB7',
+    tasks: [
+      { id: 't41', text: 'HistoryScreen: chronological list of all movements, group by date', tag: 'ui' },
+      { id: 't42', text: 'Each row: product name, movement type chip (sale=red, restock=green, adjustment=gray), qty delta, time', tag: 'ui' },
+      { id: 't43', text: 'Filter by type (All / Sale / Restock)', tag: 'ui' },
+      { id: 't44', text: 'Drift query: watchAllMovementsWithProduct() using JOIN', tag: 'db' },
+    ],
+    prompt: `CURRENT PHASE: Movement history screen.
+Build HistoryScreen:
+
+1. ListView of all movements, newest first, grouped by date (show date header when date changes)
+2. Each tile: left=colored type chip (sale:#E24B4A, restock:#1D9E75, adjustment:gray), middle=product name + note (if any), right=qty delta (+10 / -1)
+3. Filter row at top: [All] [Sales] [Restocks] chips — filters the list in memory
+4. Drift query: watchAllMovementsWithProduct() — JOIN movements with products to get product name, return custom data class MovementWithProduct { Movement movement; Product product; }
+
+No pagination needed for MVP — just load all and filter in memory.`
+  },
+  {
+    id: 'p5',
+    title: 'Dashboard & alerts',
+    time: '~0.5 day',
+    color: '#E1F5EE', numColor: '#085041',
+    tasks: [
+      { id: 't51', text: 'DashboardScreen: 4 metric cards (total products, total stock value, low-stock count, today sales)', tag: 'ui' },
+      { id: 't52', text: 'Low stock list: products where qty < threshold (configurable, default 5)', tag: 'ui' },
+      { id: 't53', text: 'Drift aggregation queries: totalProductCount, totalStockValue (SUM qty*price), lowStockProducts', tag: 'db' },
+      { id: 't54', text: 'Today movements summary: count of sales and restocks since midnight', tag: 'db' },
+    ],
+    prompt: `CURRENT PHASE: Dashboard and low-stock alerts.
+Build DashboardScreen as the app home (replace the scan button with a bottom nav: Home / Scan / History / Products).
+
+Dashboard content:
+1. 4 metric cards in a 2×2 grid: Total products, Total stock value (sum qty×price in DZD), Low stock items (qty<threshold), Today's sales count
+2. Low stock section: list of products with qty < threshold (default 5), tap → goes to product detail
+3. Threshold setting: simple int stored in SharedPreferences, editable from a settings icon in the AppBar
+
+Drift queries needed:
+- watchDashboardStats() → Stream with all 4 aggregates in one query (use multiple SELECTs or subqueries)
+- watchLowStockProducts(int threshold) → Stream<List<Product>>
+
+Use Riverpod FutureProvider or StreamProvider. Keep the UI clean — no charts needed for MVP, just numbers and lists.`
+  },
+  {
+    id: 'p6',
+    title: 'Polish & edge cases',
+    time: '~1 day',
+    color: '#F1EFE8', numColor: '#5F5E5A',
+    tasks: [
+      { id: 't61', text: 'Empty states: no products yet, no movements, no low-stock items', tag: 'ui' },
+      { id: 't62', text: 'Loading states on all async screens', tag: 'ui' },
+      { id: 't63', text: 'Error handling: DB errors surfaced as SnackBars, not crashes', tag: 'core' },
+      { id: 't64', text: 'Barcode display in ProductDetail (barcode_widget package)', tag: 'ui' },
+      { id: 't65', text: 'Data export: share CSV of current stock (share_plus package)', tag: 'core' },
+      { id: 't66', text: 'App icon + name: "مخزن" or "Stock" depending on preferred language', tag: 'ui' },
+      { id: 't67', text: 'Full manual test: create product, sell, restock, verify history, check dashboard', tag: 'test' },
+    ],
+    prompt: `CURRENT PHASE: Polish and edge cases.
+We have a working app — now make it solid.
+
+Tasks:
+1. Empty states: custom Widget EmptyState(icon, title, subtitle) — use it everywhere a list can be empty
+2. Loading: wrap all async widgets in a when() block (Riverpod pattern) with CircularProgressIndicator
+3. Error snackbar helper: void showError(BuildContext ctx, String msg) — call in catch blocks
+4. ProductDetailScreen: add barcode display using barcode_widget (BarcodeWidget(barcode: Barcode.code128(), data: product.barcode))
+5. Export: FAB on ProductListScreen → generates CSV (product name, barcode, qty, price) → share via share_plus
+6. Manual test all flows end-to-end, write down any bugs
+
+Only fix real bugs. Do not refactor working code. Do not add features not in this list.`
+  }
+];
+
+const SUPER_PROMPT = `You are my Flutter development agent for "Stock App" — a barcode-driven inventory management Android app.
+
+TECH STACK:
+- Flutter 3+ / Dart
+- Drift (SQLite ORM) + Riverpod for state
+- mobile_scanner for barcode reading
+- go_router for navigation
+- No backend — local SQLite only for MVP
+
+DB SCHEMA:
+Products: id, name, barcode (UNIQUE), quantity (int), price (real), category (nullable), createdAt
+Movements: id, productId (FK), type (sale|restock|adjustment), quantity (signed int), note (nullable), createdAt
+
+CORE BUSINESS RULES:
+1. Scanning an unknown barcode → navigate to NewProductScreen with barcode pre-filled
+2. Scanning a known barcode → show ScanActionSheet (sell / restock / view)
+3. Sale: quantity -= n. Block if would go below 0.
+4. Restock: quantity += n. No ceiling.
+5. Every quantity change MUST also insert a Movement row in the same DB transaction.
+
+AGENT RULES:
+- Generate complete, runnable code — no placeholders like "// TODO: implement"
+- When editing a file, show the full updated file (not just the diff)
+- After each phase is complete, say "PHASE COMPLETE: [name]" so I can track progress
+- If you hit a bug, fix it and continue — do not ask permission for obvious fixes
+- Do not add features not in the current phase prompt
+- Do not refactor working code from previous phases unless it blocks current work
+- If you're stuck on a bug for more than 2 attempts, output "STUCK: [description]" so I know to intervene
+
+CURRENT PHASE: [INSERT PHASE PROMPT HERE]`;
+
+const REFOCUS_PROMPT = `STOP. We've gone off track. Here is your refocus brief:
+
+APP: Flutter stock management — barcode scanning, local SQLite (Drift), Riverpod.
+THE BUG WE WERE FIXING: [describe the bug in 1 sentence before sending]
+
+REFOCUS RULES:
+1. Fix ONLY the bug described above. Nothing else.
+2. Do not refactor surrounding code.
+3. Do not add error handling to functions that aren't broken.
+4. If the fix requires touching more than 2 files, stop and ask me first.
+5. After the fix, output: "FIX DONE: [what you changed]" and wait for my next instruction.
+
+What is the minimal change to fix this specific bug?`;
+
+const SESSION_PROMPT = `Continuing "Stock App" Flutter build. Here's where we are:
+
+COMPLETED PHASES: [list them]
+CURRENT PHASE: [current phase name]
+LAST THING WE DID: [1 sentence]
+NEXT TASK: [first unchecked task in current phase]
+
+Stack: Flutter 3 + Drift + Riverpod + mobile_scanner + go_router.
+DB: Products(id,name,barcode,qty,price,category,createdAt) + Movements(id,productId,type,qty,note,createdAt).
+Core rule: every qty change → DB transaction that also inserts a Movement row.
+
+Continue from where we left off. Do not re-explain things already built.`;
+
+function renderPhases() {
+  const container = document.getElementById('phases-container');
+  container.innerHTML = '';
+  PHASES.forEach((phase, i) => {
+    const phaseEl = document.createElement('div');
+    phaseEl.className = 'phase-card';
+    phaseEl.innerHTML = `
+      <div class="phase-header" onclick="togglePhase('body-${phase.id}', this)">
+        <div class="phase-num" style="background:${phase.color};color:${phase.numColor}">${i+1}</div>
+        <div class="phase-title">${phase.title}</div>
+        <div class="phase-meta">${phase.time}</div>
+        <span class="phase-chevron ti ti-chevron-down" id="chev-${phase.id}" aria-hidden="true"></span>
+      </div>
+      <div class="phase-body" id="body-${phase.id}">
+        ${phase.tasks.map(t => `
+          <div class="task-row">
+            <input type="checkbox" class="task-check" id="${t.id}" onchange="updateProgress()" ${isChecked(t.id)?'checked':''}>
+            <label for="${t.id}" class="task-text ${isChecked(t.id)?'done':''}">${t.text}</label>
+            <span class="task-tag tag-${t.tag}">${t.tag}</span>
+          </div>
+        `).join('')}
+        <div class="prompt-box" style="margin-top:10px">
+          <div class="prompt-label">Agent prompt for this phase</div>
+          <div class="prompt-text">${phase.prompt}</div>
+          <button class="copy-btn" onclick="copyPhasePrompt(${i})">Copy</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(phaseEl);
+  });
+  updateProgress();
+}
+
+function togglePhase(bodyId, headerEl) {
+  const body = document.getElementById(bodyId);
+  const phaseId = bodyId.replace('body-', '');
+  const chev = document.getElementById('chev-' + phaseId);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function isChecked(id) {
+  try { return localStorage.getItem('stock_' + id) === '1'; } catch(e) { return false; }
+}
+
+function updateProgress() {
+  let total = 0, done = 0;
+  PHASES.forEach(p => p.tasks.forEach(t => {
+    total++;
+    const cb = document.getElementById(t.id);
+    if (cb && cb.checked) {
+      done++;
+      try { localStorage.setItem('stock_' + t.id, '1'); } catch(e){}
+      const label = document.querySelector(`label[for="${t.id}"]`);
+      if (label) label.classList.add('done');
+    } else {
+      try { localStorage.removeItem('stock_' + t.id); } catch(e){}
+      const label = document.querySelector(`label[for="${t.id}"]`);
+      if (label) label.classList.remove('done');
+    }
+  }));
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${done} / ${total} tasks complete (${pct}%)`;
+}
+
+function resetAll() {
+  if (!confirm('Reset all task progress?')) return;
+  PHASES.forEach(p => p.tasks.forEach(t => {
+    try { localStorage.removeItem('stock_' + t.id); } catch(e){}
+    const cb = document.getElementById(t.id);
+    if (cb) cb.checked = false;
+  }));
+  updateProgress();
+}
+
+function copyPhasePrompt(i) {
+  const text = PHASES[i].prompt;
+  navigator.clipboard.writeText(SUPER_PROMPT.replace('[INSERT PHASE PROMPT HERE]', text)).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy', 1500);
+  });
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(SUPER_PROMPT).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy prompt', 1500);
+  });
+}
+
+function copyRefocus() {
+  navigator.clipboard.writeText(REFOCUS_PROMPT).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy refocus', 1500);
+  });
+}
+
+function copySession() {
+  navigator.clipboard.writeText(SESSION_PROMPT).then(() => {
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy session prompt', 1500);
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+document.getElementById('super-prompt-display').textContent = SUPER_PROMPT;
+document.getElementById('refocus-display').textContent = REFOCUS_PROMPT;
+document.getElementById('session-prompt-display').textContent = SESSION_PROMPT;
+renderPhases();
+</script>
