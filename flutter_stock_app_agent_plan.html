@@ -48,7 +48,7 @@
 
 <div class="header">
   <h1>📦 Flutter Stock App — Agent Build Plan</h1>
-  <p>Barcode-driven inventory management for Algerian boutiques · ~5 days focused · Check off tasks as you go</p>
+  <p>Barcode-driven inventory management for Algerian boutiques + WooCommerce Sync · ~6 days focused · Check off tasks as you go</p>
   <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
   <div class="progress-label"><span id="prog-text">0 / 0 tasks complete</span> &nbsp;·&nbsp; <button class="reset-btn" onclick="resetAll()">Reset all</button></div>
 </div>
@@ -95,8 +95,8 @@ const PHASES = [
     color: '#E6F1FB', numColor: '#185FA5',
     tasks: [
       { id: 't01', text: 'flutter create stock_app, set min SDK to 3.0', tag: 'core' },
-      { id: 't02', text: 'Add packages: mobile_scanner, drift + drift_dev, flutter_riverpod, go_router, barcode_widget, intl', tag: 'core' },
-      { id: 't03', text: 'Setup Drift database class with Products + Movements tables', tag: 'db' },
+      { id: 't02', text: 'Add packages: mobile_scanner, drift + drift_dev, flutter_riverpod, go_router, barcode_widget, intl, dio, crypto', tag: 'core' },
+      { id: 't03', text: 'Setup Drift database class with Products (with woo_id) + Movements tables', tag: 'db' },
       { id: 't04', text: 'Run flutter pub run build_runner build to generate Drift files', tag: 'db' },
       { id: 't05', text: 'Add CAMERA permission in AndroidManifest.xml + runtime request via permission_handler', tag: 'core' },
       { id: 't06', text: 'Setup go_router with placeholder routes: /, /scan, /product/:id, /product/new, /history', tag: 'core' },
@@ -107,7 +107,7 @@ CURRENT PHASE: Project scaffold.
 Goal: Create the project, add all packages, generate the Drift schema with Products and Movements tables, setup routing skeleton.
 
 Schema:
-Products: id (autoIncrement), name, barcode (unique), quantity (default 0), price, category (nullable), createdAt
+Products: id (autoIncrement), woo_id (nullable), name, barcode (unique), quantity (default 0), price, category (nullable), createdAt
 Movements: id, productId (FK→Products), type (sale|restock|adjustment), quantity, note (nullable), createdAt
 
 Keep it minimal — no UI yet, just foundation. Generate AndroidManifest.xml with CAMERA permission. After scaffold, run build_runner.`
@@ -245,17 +245,42 @@ Use Riverpod FutureProvider or StreamProvider. Keep the UI clean — no charts n
   },
   {
     id: 'p6',
+    title: 'WooCommerce Integration',
+    time: '~1.5 days',
+    color: '#FDF1E6', numColor: '#B06110',
+    tasks: [
+      { id: 't61', text: 'WooCommerce API client: Setup Dio with base URL, consumer key, and consumer secret', tag: 'core' },
+      { id: 't62', text: 'Initial Sync: Pull all products from WooCommerce and populate local DB (match by SKU/barcode)', tag: 'db' },
+      { id: 't63', text: 'Product Sync: When creating/editing a local product, push to WooCommerce API', tag: 'core' },
+      { id: 't64', text: 'Stock Sync: On sale/restock, push quantity update to WooCommerce (batch or direct update)', tag: 'core' },
+      { id: 't65', text: 'Settings: UI to configure WooCommerce credentials (URL, Key, Secret)', tag: 'ui' },
+    ],
+    prompt: `CURRENT PHASE: WooCommerce Integration.
+We are connecting the local app to a WooCommerce web store to make it the single source of truth.
+
+Build:
+1. Settings screen to save WooCommerce Base URL, Consumer Key, and Consumer Secret securely.
+2. A WooCommerceApiClient using Dio to authenticate and communicate with the WooCommerce REST API.
+3. Sync Logic:
+   - Initial pull: Fetch products from Woo and upsert into the local Drift DB (store Woo ID in the woo_id column).
+   - Real-time updates: Whenever a product is created or updated locally, send a POST/PUT to WooCommerce.
+   - Inventory changes: Whenever a Sale or Restock happens, send a PUT request to update the 'regular_price' or 'stock_quantity' in WooCommerce.
+   
+Handle API errors gracefully (offline queueing or simple error SnackBars for MVP).`
+  },
+  {
+    id: 'p7',
     title: 'Polish & edge cases',
     time: '~1 day',
     color: '#F1EFE8', numColor: '#5F5E5A',
     tasks: [
-      { id: 't61', text: 'Empty states: no products yet, no movements, no low-stock items', tag: 'ui' },
-      { id: 't62', text: 'Loading states on all async screens', tag: 'ui' },
-      { id: 't63', text: 'Error handling: DB errors surfaced as SnackBars, not crashes', tag: 'core' },
-      { id: 't64', text: 'Barcode display in ProductDetail (barcode_widget package)', tag: 'ui' },
-      { id: 't65', text: 'Data export: share CSV of current stock (share_plus package)', tag: 'core' },
-      { id: 't66', text: 'App icon + name: "مخزن" or "Stock" depending on preferred language', tag: 'ui' },
-      { id: 't67', text: 'Full manual test: create product, sell, restock, verify history, check dashboard', tag: 'test' },
+      { id: 't71', text: 'Empty states: no products yet, no movements, no low-stock items', tag: 'ui' },
+      { id: 't72', text: 'Loading states on all async screens', tag: 'ui' },
+      { id: 't73', text: 'Error handling: DB errors surfaced as SnackBars, not crashes', tag: 'core' },
+      { id: 't74', text: 'Barcode display in ProductDetail (barcode_widget package)', tag: 'ui' },
+      { id: 't75', text: 'Data export: share CSV of current stock (share_plus package)', tag: 'core' },
+      { id: 't76', text: 'App icon + name: "مخزن" or "Stock" depending on preferred language', tag: 'ui' },
+      { id: 't77', text: 'Full manual test: create product, sell, restock, verify history, check dashboard', tag: 'test' },
     ],
     prompt: `CURRENT PHASE: Polish and edge cases.
 We have a working app — now make it solid.
@@ -279,10 +304,10 @@ TECH STACK:
 - Drift (SQLite ORM) + Riverpod for state
 - mobile_scanner for barcode reading
 - go_router for navigation
-- No backend — local SQLite only for MVP
+- Local SQLite (Drift) + WooCommerce REST API Integration for real-time web store sync
 
 DB SCHEMA:
-Products: id, name, barcode (UNIQUE), quantity (int), price (real), category (nullable), createdAt
+Products: id, woo_id (nullable), name, barcode (UNIQUE), quantity (int), price (real), category (nullable), createdAt
 Movements: id, productId (FK), type (sale|restock|adjustment), quantity (signed int), note (nullable), createdAt
 
 CORE BUSINESS RULES:
@@ -291,6 +316,7 @@ CORE BUSINESS RULES:
 3. Sale: quantity -= n. Block if would go below 0.
 4. Restock: quantity += n. No ceiling.
 5. Every quantity change MUST also insert a Movement row in the same DB transaction.
+6. Any stock change or product update must be synced to the WooCommerce store.
 
 AGENT RULES:
 - Generate complete, runnable code — no placeholders like "// TODO: implement"
@@ -305,7 +331,7 @@ CURRENT PHASE: [INSERT PHASE PROMPT HERE]`;
 
 const REFOCUS_PROMPT = `STOP. We've gone off track. Here is your refocus brief:
 
-APP: Flutter stock management — barcode scanning, local SQLite (Drift), Riverpod.
+APP: Flutter stock management — barcode scanning, local SQLite (Drift), WooCommerce sync, Riverpod.
 THE BUG WE WERE FIXING: [describe the bug in 1 sentence before sending]
 
 REFOCUS RULES:
@@ -324,9 +350,9 @@ CURRENT PHASE: [current phase name]
 LAST THING WE DID: [1 sentence]
 NEXT TASK: [first unchecked task in current phase]
 
-Stack: Flutter 3 + Drift + Riverpod + mobile_scanner + go_router.
-DB: Products(id,name,barcode,qty,price,category,createdAt) + Movements(id,productId,type,qty,note,createdAt).
-Core rule: every qty change → DB transaction that also inserts a Movement row.
+Stack: Flutter 3 + Drift + Riverpod + mobile_scanner + go_router + dio (WooCommerce).
+DB: Products(id,woo_id,name,barcode,qty,price,category,createdAt) + Movements(id,productId,type,qty,note,createdAt).
+Core rule: every qty change → DB transaction that inserts a Movement row AND syncs to WooCommerce.
 
 Continue from where we left off. Do not re-explain things already built.`;
 
